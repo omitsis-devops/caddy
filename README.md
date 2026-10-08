@@ -9,6 +9,16 @@ It uses the official `caddy` image as its base and adds:
   Caddy from Docker labels instead of a static Caddyfile.
 - **[caddy-cloudflare-ip](https://github.com/WeidiDeng/caddy-cloudflare-ip)** — resolves
   Cloudflare's IP ranges for `trusted_proxies`, so `X-Forwarded-For` from Cloudflare is trusted.
+- **[caddy-dynamic-clientip](https://github.com/tuzzmaniandevil/caddy-dynamic-clientip)** — the
+  `dynamic_client_ip` request matcher: like `client_ip`, but its ranges come from an IP source.
+- **[caddy-ip-list](https://github.com/monobilisim/caddy-ip-list)** — the `list` IP source: fetches
+  CIDR lists (one per line) from URLs on an interval, with a persistent on-disk cache.
+- **[caddy-crowdsec-bouncer](https://github.com/hslatman/caddy-crowdsec-bouncer)** (`/http`,
+  `/appsec`) — CrowdSec bouncer and AppSec handlers. Inert until a `crowdsec` block is configured.
+
+`sistemes-stack` uses `dynamic_client_ip` + `list` to set the verified-crawler header
+(`X-Omitsis-Verified-Bot`) from a list of official crawler IP ranges; the CrowdSec bouncer is
+there for the planned per-host CrowdSec rollout.
 
 ## Image
 
@@ -33,8 +43,18 @@ services:
 ## Build
 
 The GitHub Action rebuilds and pushes on every push to `main`, and on a weekly schedule
-(Mondays 3 AM) to pick up upstream `caddy`/plugin releases even without a commit here.
+(Mondays 3 AM) to pick up upstream `caddy` releases even without a commit here.
 Built for `linux/amd64` and `linux/arm64/v8`.
+
+**A push to `main` reaches every server.** It publishes `:latest`, which servers pull on their
+own. Test changes on a branch first (pushes to other branches build nothing), build the image on
+a test server, and merge only then.
+
+**Plugin versions.** The plugins added for the verified-crawler header and CrowdSec are pinned
+(`@<tag>`, or `@<commit>` for `caddy-ip-list`, which has no tags), so the weekly rebuild does not
+silently pick up their changes. `caddy-docker-proxy` and `caddy-cloudflare-ip` are not pinned
+yet. To update a pinned plugin, change its version in the `Dockerfile`, test it on a branch, then
+merge.
 
 ```sh
 docker build -t caddy .
