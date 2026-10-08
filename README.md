@@ -53,8 +53,19 @@ a test server, and merge only then.
 **Plugin versions.** The plugins added for the verified-crawler header and CrowdSec are pinned
 (`@<tag>`, or `@<commit>` for `caddy-ip-list`, which has no tags), so the weekly rebuild does not
 silently pick up their changes. `caddy-docker-proxy` and `caddy-cloudflare-ip` are not pinned
-yet. To update a pinned plugin, change its version in the `Dockerfile`, test it on a branch, then
-merge.
+yet.
+
+**Keeping them updated.** `.github/workflows/update-plugins.yml` runs on the 1st of each month
+(or by hand from the Actions tab). It runs `scripts/update-plugins.sh`, which asks the Go module
+proxy for each pinned plugin's latest version, and opens a pull request from a
+`plugin-updates/<date>` branch when something is newer. It skips the run while such a pull
+request is still open. It builds and publishes nothing: test the pull request's branch on a test
+server, then merge. To bump by hand, run `scripts/update-plugins.sh` (needs `curl` and `jq`) or
+edit the version in the `Dockerfile`.
+
+For the workflow to open pull requests, the repository (or the organisation) must allow it:
+*Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and
+approve pull requests"*.
 
 ```sh
 docker build -t caddy .

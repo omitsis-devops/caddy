@@ -1,0 +1,57 @@
+name: Update pinned plugins
+
+# Once a month, bump every pinned plugin in the Dockerfile (`--with <pkg>@<version>`) to its
+# latest upstream version and open a pull request. Nothing is built or published here: merging
+# the pull request into main is what publishes a new image to every server, so test the PR's
+# branch first (README, "Build").
+
+on:
+  schedule:
+    - cron: "0 6 1 * *" # 1st of each month, 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Skip if an update PR is already open
+        id: open_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          n=$(gh pr list --state open --search "head:plugin-updates/" --json number --jq length)
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+
+      - name: Bump pinned plugins
+        if: steps.open_pr.outputs.count == '0'
+        id: bump
+        run: |
+          {
+            echo "changes<<EOF"
+            scripts/update-plugins.sh Dockerfile
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: steps.open_pr.outputs.count == '0' && steps.bump.outputs.changes != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGES: ${{ steps.bump.outputs.changes }}
+        run: |
+          branch="plugin-updates/$(date -u +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -am "Bump pinned Caddy plugins" -m "$CHANGES"
+          git push origin "$branch"
+          body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
+            "Pinned plugins with a newer upstream version:" "$CHANGES" \
+            "**Merging publishes :latest to every server.** Before merging, build this branch on a test server, run it as that host's Caddy and check its sites (README, \"Build\"); check each plugin's release notes for breaking changes.")
+          gh pr create --base main --head "$branch" --title "Bump pinned Caddy plugins ($(date -u +%Y-%m-%d))" --body "$body"
