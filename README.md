@@ -17,8 +17,9 @@ It uses the official `caddy` image as its base and adds:
   `/appsec`) — CrowdSec bouncer and AppSec handlers. Inert until a `crowdsec` block is configured.
 
 `sistemes-stack` uses `dynamic_client_ip` + `list` to set the verified-crawler header
-(`X-Omitsis-Verified-Bot`) from a list of official crawler IP ranges; the CrowdSec bouncer is
-there for the planned per-host CrowdSec rollout.
+(`X-Omitsis-Verified-Bot`) from a list of official crawler IP ranges, and the CrowdSec bouncer
+(`crowdsec @not_verified_bot` in its `omitsis_edge` snippet) against the CrowdSec agent it runs on
+every host, in simulation mode by default.
 
 ## Image
 

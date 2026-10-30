@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Skip if an update PR is already open
         id: open_pr
@@ -51,6 +51,7 @@ jobs:
           git checkout -b "$branch"
           git commit -am "Bump pinned Caddy plugins" -m "$CHANGES"
           git push origin "$branch"
+          # shellcheck disable=SC2016 # the backticks are a literal Markdown code fence
           body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
             "Pinned plugins with a newer upstream version:" "$CHANGES" \
             "**Merging publishes :latest to every server.** Before merging, build this branch on a test server, run it as that host's Caddy and check its sites (README, \"Build\"); check each plugin's release notes for breaking changes.")
